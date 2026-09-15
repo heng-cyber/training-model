@@ -1,0 +1,67 @@
+# Default training config for XAUUSD
+
+symbol: XAUUSD
+timeframe: M15  # M1, M5, M15, M30, H1, H4, D1
+bars: 5000      # number of historical bars to request from MT5
+
+data:
+  # source: auto | mt5 | csv | sample
+  # auto = try MT5, else CSV path if set, else bundled sample
+  source: auto
+  csv_path: null
+  # MT5 terminal path (Windows). Leave null to use the already-running terminal.
+  mt5_path: null
+  # Optional login — leave null; MT5 uses the terminal's active account.
+  # Do not commit real credentials.
+  mt5_login: null
+  mt5_password: null
+  mt5_server: null
+
+features:
+  returns_windows: [1, 2, 3, 5, 10, 20]
+  sma_windows: [5, 10, 20, 50]
+  ema_windows: [8, 21]
+  rsi_period: 14
+  atr_period: 14
+  bollinger_period: 20
+  bollinger_std: 2.0
+  volatility_windows: [10, 20]
+  volume_sma_window: 20
+
+label:
+  # next_direction: classify next-bar close > current close
+  # next_return: regress next-bar log return
+  target: next_direction
+  horizon: 1
+  # for next_direction: ignore bars with |return| < threshold (noise filter)
+  min_abs_return: 0.0
+
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  # remaining = test
+  # time-ordered split (no shuffle) — required for financial data
+
+model:
+  # sklearn_gb: GradientBoostingClassifier / Regressor
+  # sklearn_rf: RandomForest
+  # sklearn_mlp: simple MLP neural net
+  type: sklearn_gb
+  params:
+    n_estimators: 150
+    learning_rate: 0.05
+    max_depth: 3
+    random_state: 42
+
+backtest:
+  # Simple signal evaluation: long if P(up) > threshold, short if P(down) > threshold
+  probability_threshold: 0.55
+  # Fixed notional position size (1.0 = 100% of equity per trade for return calc)
+  position_size: 1.0
+  # Round-trip cost in fraction of price (e.g. 0.0002 ≈ 2 bps)
+  cost_rate: 0.0002
+
+paths:
+  raw_data_dir: data/raw
+  sample_data_dir: data/sample
+  artifacts_dir: artifacts
