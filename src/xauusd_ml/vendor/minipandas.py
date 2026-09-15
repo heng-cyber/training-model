@@ -482,7 +482,7 @@ class DataFrame:
         if isinstance(data, dict):
             cols = list(columns) if columns is not None else list(data.keys())
             arrays = {}
-            n = None
+            lengths: list[int] = []
             for c in cols:
                 if c in data:
                     arr = _as_1d(data[c])
@@ -490,21 +490,24 @@ class DataFrame:
                     arr = None
                 arrays[c] = arr
                 if arr is not None:
-                    n = len(arr) if n is None else n
-            if n is None:
-                n = len(index) if index is not None else 0
+                    lengths.append(len(arr))
+            if index is not None:
+                n = len(index)
+            elif lengths:
+                n = max(lengths)
+            else:
+                n = 0
             for c in cols:
-                if arrays[c] is None:
+                arr = arrays[c]
+                if arr is None:
                     arrays[c] = np.full(n, np.nan)
+                elif len(arr) == 1 and n != 1:
+                    arrays[c] = np.full(n, arr[0])
+                elif len(arr) != n:
+                    raise ValueError(f"Column {c!r} length {len(arr)} != {n}")
             self._columns = [str(c) for c in cols]
             self._data = {str(c): arrays[c] for c in cols}
             self._index = Index(index) if index is not None else Index(np.arange(n))
-            if len(self._index) != n and n != 0:
-                # allow empty-column frame with provided index
-                if not cols:
-                    self._index = Index(index) if index is not None else Index(np.arange(0))
-                else:
-                    raise ValueError("DataFrame columns have inconsistent length vs index")
             return
 
         if isinstance(data, np.ndarray):
@@ -668,7 +671,9 @@ class DataFrame:
     def max(self, axis: int | None = None) -> Any:
         if axis == 1:
             arr = np.column_stack([self._data[c].astype(float) for c in self._columns])
-            return Series(np.nanmax(arr, axis=1), index=self._index)
+            with np.errstate(all="ignore"):
+                vals = np.nanmax(arr, axis=1)
+            return Series(vals, index=self._index)
         if axis == 0 or axis is None:
             return Series([np.nanmax(self._data[c].astype(float)) for c in self._columns], index=Index(self._columns))
         raise ValueError(axis)
@@ -846,8 +851,12 @@ def concat(objs: Sequence[Series | DataFrame], axis: int = 0) -> DataFrame | Ser
         col_i = 0
         for obj in objs:
             if isinstance(obj, Series):
-                name = obj.name if obj.name is not None else str(col_i)
-                cols[str(name)] = obj._values
+                name = obj.name if obj.name is not None else f"col_{col_i}"
+                name = str(name)
+                while name in cols:
+                    col_i += 1
+                    name = f"{name}_{col_i}"
+                cols[name] = obj._values
                 index = obj.index
                 col_i += 1
             else:
