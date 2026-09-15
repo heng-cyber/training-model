@@ -31,6 +31,8 @@ pip install -U pip
 pip install -e ".[dev]"
 ```
 
+If PyPI is unavailable (restricted CI/cloud) but `numpy` and `PyYAML` are present, `scripts/fetch_data.py`, `scripts/train.py`, and `scripts/evaluate.py` still run using a numpy fallback for pandas/scikit-learn. Prefer the real packages when you can install them.
+
 ### MetaTrader 5 (Windows only)
 
 The official [`MetaTrader5`](https://pypi.org/project/MetaTrader5/) package talks to a **local MT5 terminal**. It does **not** run on Linux/macOS.
