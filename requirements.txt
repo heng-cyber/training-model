@@ -1,0 +1,11 @@
+# Core (works on Linux/macOS/Windows without MetaTrader 5)
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.3
+pyyaml>=6.0
+matplotlib>=3.7
+joblib>=1.3
+
+# Optional: MetaTrader 5 Python API (Windows only, with MT5 terminal installed)
+# pip install MetaTrader5
+# Or: pip install -e ".[mt5]"
